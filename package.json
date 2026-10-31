@@ -1,0 +1,23 @@
+{
+  "name": "skillswap2-judaholson",
+  "version": "1.0.0",
+  "description": "Skill Swap is a platform designed to connect individuals looking to share their expertise and learn new skills from others in a collaborative community.",
+  "main": "script.js",
+  "scripts": {
+  "test": "jest"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheKillerMockingbird/skillswap2-JudahOlson.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TheKillerMockingbird/skillswap2-JudahOlson/issues"
+  },
+  "homepage": "https://github.com/TheKillerMockingbird/skillswap2-JudahOlson#readme",
+  "devDependencies": {
+    "jest": "^30.5.2"
+  }
+}
