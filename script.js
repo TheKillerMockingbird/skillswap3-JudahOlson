@@ -1,3 +1,5 @@
+let allSkills = [];
+
 function filterSkillsByCategory(skills, category) {
   if (category === 'All') {
     return skills;
@@ -5,21 +7,23 @@ function filterSkillsByCategory(skills, category) {
   return skills.filter(skill => skill.category === category);
 }
 
-const allSkills = [
-  { title: 'Python Tutoring', category: 'Programming', price: 20, provider: 'Marcus T.' },
-  { title: 'Guitar Lessons', category: 'Music', price: 15, provider: 'Jake L.' },
-  { title: 'Resume Review', category: 'Career', price: 0, provider: 'Aisha R.' },
-  { title: 'Web Development', category: 'Programming', price: 25, provider: 'Sarah K.' }
-];
+function calculateTotalCost(hourlyRate, hours) {
+  return hourlyRate * hours;
+}
 
-const skillsContainer = document.getElementById('skills-container');
-const filterButtons = document.querySelectorAll('.filter-btn');
+function matchSkillsToUser(userNeeds, skills) {
+  return skills.filter(skill => {
+    return skill.category === userNeeds.category && skill.price <= userNeeds.maxPrice;
+  });
+}
 
-function renderSkills(skills) {
-  skillsContainer.innerHTML = '';
+function renderSkills(skills, container = document.getElementById('skills-container')) {
+  if (!container) return;
+
+  container.innerHTML = '';
 
   if (skills.length === 0) {
-    skillsContainer.innerHTML = '<p>No skills found in this category.</p>';
+    container.innerHTML = '<p>No skills found.</p>';
     return;
   }
 
@@ -30,14 +34,26 @@ function renderSkills(skills) {
       <h3>${skill.title}</h3>
       <p class="description">${skill.category}</p>
       <p class="price">$${skill.price} / hour</p>
-      <p class="provider">Provider: ${skill.provider}</p>
-      <button class="details-btn">More Info</button>
+      <p class="provider">Provider: ${skill.provider || 'N/A'}</p>
     `;
-    skillsContainer.appendChild(card);
+    container.appendChild(card);
   });
 }
 
-renderSkills(allSkills);
+async function loadSkills() {
+  try {
+    allSkills = await window.apiService.fetchSkills();
+    renderSkills(allSkills);
+  } catch (error) {
+    console.error('Failed to load skills:', error);
+    const container = document.getElementById('skills-container');
+    if (container) {
+      container.innerHTML = '<p>Error loading skills. Make sure the backend is running on port 3000.</p>';
+    }
+  }
+}
+
+const filterButtons = document.querySelectorAll('.filter-btn');
 
 filterButtons.forEach(button => {
   button.addEventListener('click', () => {
@@ -50,25 +66,17 @@ filterButtons.forEach(button => {
   });
 });
 
-function calculateTotalCost(hourlyRate, hours) {
-  return hourlyRate * hours;
-}
-
 const rateInput = document.getElementById('hourly-rate');
 const hoursInput = document.getElementById('hours');
 const calculateBtn = document.getElementById('calculate-btn');
 const costResult = document.getElementById('cost-result');
 
-calculateBtn.addEventListener('click', () => {
-  const rate = parseFloat(rateInput.value) || 0;
-  const hours = parseFloat(hoursInput.value) || 0;
-  const total = calculateTotalCost(rate, hours);
-  costResult.textContent = `Total Cost: $${total.toFixed(2)}`;
-});
-
-function matchSkillsToUser(userNeeds, skills) {
-  return skills.filter(skill => {
-    return skill.category === userNeeds.category && skill.price <= userNeeds.maxPrice;
+if (calculateBtn) {
+  calculateBtn.addEventListener('click', () => {
+    const rate = parseFloat(rateInput.value) || 0;
+    const hours = parseFloat(hoursInput.value) || 0;
+    const total = calculateTotalCost(rate, hours);
+    costResult.textContent = `Total Cost: $${total.toFixed(2)}`;
   });
 }
 
@@ -77,30 +85,52 @@ const matchMaxPrice = document.getElementById('match-max-price');
 const findMatchBtn = document.getElementById('find-match-btn');
 const matchResults = document.getElementById('match-results');
 
-findMatchBtn.addEventListener('click', () => {
-  const userNeeds = {
-    category: matchCategory.value,
-    maxPrice: parseFloat(matchMaxPrice.value) || 0
-  };
+if (findMatchBtn) {
+  findMatchBtn.addEventListener('click', () => {
+    const userNeeds = {
+      category: matchCategory.value,
+      maxPrice: parseFloat(matchMaxPrice.value) || 0
+    };
 
-  const matched = matchSkillsToUser(userNeeds, allSkills);
-  
-  matchResults.innerHTML = '';
-
-  if (matched.length === 0) {
-    matchResults.innerHTML = '<p>No matching skills found.</p>';
-    return;
-  }
-
-  matched.forEach(skill => {
-    const card = document.createElement('div');
-    card.className = 'skill-card';
-    card.innerHTML = `
-      <h3>${skill.title}</h3>
-      <p class="description">${skill.category}</p>
-      <p class="price">$${skill.price} / hour</p>
-      <p class="provider">Provider: ${skill.provider || 'N/A'}</p>
-    `;
-    matchResults.appendChild(card);
+    const matched = matchSkillsToUser(userNeeds, allSkills);
+    renderSkills(matched, matchResults);
   });
+}
+
+const createSkillForm = document.getElementById('create-skill-form');
+const createSkillMessage = document.getElementById('create-skill-message');
+
+if (createSkillForm) {
+  createSkillForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const skillData = {
+      title: document.getElementById('skill-title').value.trim(),
+      category: document.getElementById('skill-category').value,
+      price: parseFloat(document.getElementById('skill-price').value) || 0,
+      description: document.getElementById('skill-description').value.trim()
+    };
+
+    try {
+      await window.apiService.createSkill(skillData);
+      
+      if (createSkillMessage) {
+        createSkillMessage.textContent = 'Skill created successfully!';
+        createSkillMessage.style.color = 'green';
+      }
+
+      createSkillForm.reset();
+      await loadSkills();
+    } catch (error) {
+      if (createSkillMessage) {
+        createSkillMessage.textContent = 'Failed to create skill. Check the console.';
+        createSkillMessage.style.color = 'red';
+      }
+      console.error(error);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadSkills();
 });
